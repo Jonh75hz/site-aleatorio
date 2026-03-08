@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mikrokosmos| Universo</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poiret+One&family=Raleway:wght@200;400&display=swap" rel="stylesheet">
+    <style>
+        /* --- CSS --- */
+        * { margin: 0; padding: 0; box-sizing: border-box; cursor: none; }
+
+        body {
+            background-color: #000;
+            color: white;
+            font-family: 'Raleway', sans-serif;
+            overflow-x: hidden;
+            width: 100%;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        #galaxyCanvas { position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 1; }
+
+        .cursor {
+            width: 10px; height: 10px; background: #fff; border-radius: 50%;
+            position: fixed; pointer-events: none; z-index: 9999;
+            mix-blend-mode: difference; box-shadow: 0 0 15px #fff, 0 0 30px #a0d8ef;
+        }
+
+        @media (max-width: 768px) { .cursor { display: none; } * { cursor: auto !important; } }
+
+        .audio-control {
+            position: fixed; top: 20px; right: 20px; z-index: 100;
+            background: rgba(255, 255, 255, 0.1); border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 8px 16px; border-radius: 50px; color: white; font-size: 0.6rem;
+            letter-spacing: 2px; backdrop-filter: blur(10px); text-transform: uppercase;
+        }
+
+        .timeline-container { position: relative; z-index: 10; width: 100%; padding: 0 5%; }
+
+        .timeline-line {
+            position: absolute; left: 50%; top: 0; width: 1px; height: 100%;
+            background: rgba(255, 255, 255, 0.1); transform: translateX(-50%);
+        }
+
+        .timeline-progress {
+            position: absolute; left: 50%; top: 0; width: 2px; height: 0%;
+            background: linear-gradient(to bottom, #a0d8ef, #ff3e6c);
+            transform: translateX(-50%); box-shadow: 0 0 15px #a0d8ef;
+        }
+
+        @media (max-width: 768px) { .timeline-line, .timeline-progress { left: 20px; transform: none; } }
+
+        section { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 100px 20px; opacity: 0; transform: translateY(30px); }
+
+        .content {
+            width: 100%; max-width: 600px; text-align: center;
+            background: rgba(0, 0, 0, 0.6); padding: clamp(20px, 5vw, 50px);
+            border-radius: 20px; backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        @media (max-width: 768px) { section { justify-content: flex-start; padding-left: 50px; } .content { text-align: left; } }
+
+        h1 { font-family: 'Poiret One', cursive; font-size: clamp(2rem, 10vw, 4rem); margin-bottom: 20px; letter-spacing: 5px; }
+        h2 { font-family: 'Poiret One', cursive; font-size: clamp(1.5rem, 8vw, 2.5rem); color: #a0d8ef; margin-bottom: 15px; }
+        p { font-size: clamp(0.9rem, 4vw, 1.1rem); line-height: 1.6; color: rgba(255, 255, 255, 0.8); }
+
+        /* Botão Final */
+        .final-btn {
+            margin-top: 30px; background: transparent; border: 1px solid #fff;
+            color: #fff; padding: 15px 30px; border-radius: 50px;
+            font-family: 'Raleway', sans-serif; letter-spacing: 4px;
+            text-transform: uppercase; font-size: 0.8rem; transition: 0.3s;
+            pointer-events: auto;
+        }
+        .final-btn:hover { background: #fff; color: #000; box-shadow: 0 0 30px #fff; }
+
+        /* --- NOVA ESTRELA VISUAL --- */
+        #supernova-container {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; align-items: center; justify-content: center;
+            z-index: 2000; overflow: hidden;
+        }
+
+        .star-visual {
+            width: 100px; /* Tamanho inicial */
+            height: 100px;
+            /* Usando um SVG de estrela brilhante de alta qualidade */
+            background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><radialGradient id="grad" cx="50%" cy="50%" r="50%" fx="50%" fy="50%"><stop offset="0%" style="stop-color:rgb(255,255,255);stop-opacity:1" /><stop offset="20%" style="stop-color:rgb(255,255,255);stop-opacity:1" /><stop offset="50%" style="stop-color:rgb(160,216,239);stop-opacity:0.8" /><stop offset="100%" style="stop-color:rgb(0,0,0);stop-opacity:0" /></radialGradient></defs><circle cx="50%" cy="50%" r="50%" fill="url(%23grad)"/></svg>');
+            background-size: contain;
+            background-repeat: no-repeat;
+            background-position: center;
+            /* Efeito de Bloom (Brilho Intenso) */
+            filter: drop-shadow(0 0 20px #fff) drop-shadow(0 0 40px #a0d8ef);
+            transform: scale(0); /* Começa invisível */
+        }
+
+        /* Mensagem Final */
+        #finalMessage {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            display: none; align-items: center; justify-content: center;
+            background: #000; z-index: 2001; text-align: center; padding: 20px;
+        }
+        #finalMessage h2 { font-size: clamp(1.5rem, 6vw, 3rem); color: #fff; line-height: 1.4; opacity: 0; }
+
+        .flash-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 3000; pointer-events: none; opacity: 0; }
+    </style>
+</head>
+<body>
+
+    <div class="flash-overlay"></div>
+    
+    <div id="supernova-container">
+        <div class="star-visual" id="starVisual"></div>
+    </div>
+
+    <div id="finalMessage">
+        <h2 id="lastText">desculpa por gostar de você assim freneticamente</h2>
+    </div>
+
+    <audio id="bgMusic" loop><source src="musica.mp3" type="audio/mpeg"></audio>
+    <button class="audio-control" id="musicBtn">Som: Off</button>
+
+    <canvas id="galaxyCanvas"></canvas>
+    <div class="cursor"></div>
+
+    <div class="timeline-container">
+        <div class="timeline-line"></div>
+        <div class="timeline-progress" id="progressLine"></div>
+
+        <section><div class="content"><h1>O Início</h1>
+                <p>No vasto vazio do universo, algo especial começou a brilhar quando nossos caminhos se cruzaram.</p>
+            </div>
+        </section>
+
+        <section class="step">
+            <div class="content">
+                <h2>Conexão</h2>
+                <p>Cada conversa, cada risada, uma nova estrela nascia no meu céu particular.</p>
+            </div>
+        </section>
+
+        <section class="step">
+            <div class="content">
+                <h2>Presente</h2>
+                <p>Hoje, você é o centro da minha gravidade. O motivo pelo qual o tempo parece parar quando estamos juntos.</p>
+            </div>
+        </section>
+
+        <section class="step">
+            <div class="content">
+                <h2>Medo</h2>
+                <p>Medo de um dia não ter você por perto, medo de perder nossas interações unicas pra outra pessoa, medo de perder você..</p>
+            </div>
+        </section>
+        
+        <section class="step">
+            <div class="content">
+                <h2>Gostos</h2>
+                <p>Somos até que parecidos de longe, mas somos, memes, jogos, gosto de me dedicar por você.</p>
+            </div>
+        </section>
+        <section class="step">
+            <div class="content">
+                <h1>Infinito</h1>
+                <p>E isso é apenas o começo de uma jornada que não conhece fronteiras.</p>
+            </div>
+        </section>
+         <section class="step">
+            <div class="content">
+                <h1>O Último Segredo</h1>
+                <p>Chegamos ao fim da linha, mas há algo que as estrelas ainda não disseram.</p>
+                <button class="final-btn" id="explodeBtn">Descobrir</button>
+            </div>
+        </section>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+
+    <script>
+        // ... (Lógica de Galáxia, Cursor e Música idênticas, mantidas para o código funcionar completo) ...
+        const canvas = document.getElementById('galaxyCanvas');
+        const ctx = canvas.getContext('2d');
+        const music = document.getElementById('bgMusic');
+        const musicBtn = document.getElementById('musicBtn');
+        const cursorDiv = document.querySelector('.cursor');
+        
+        // Novos Elementos Visuais
+        const supernovaCont = document.getElementById('supernova-container');
+        const starVisual = document.getElementById('starVisual');
+        
+        const finalMsg = document.getElementById('finalMessage');
+        const lastText = document.getElementById('lastText');
+
+        let width, height, stars = [];
+        let isPlaying = false, isInteracting = false;
+        let pointerX = 0, pointerY = 0;
+        window.starIntensity = 1;
+
+        function setCanvasSize() {
+            width = canvas.width = window.innerWidth;
+            height = canvas.height = window.innerHeight;
+            initGalaxy();
+        }
+
+        class Star {
+            constructor() { this.x = Math.random() * width; this.y = Math.random() * height; this.originX = this.x; this.originY = this.y; this.size = Math.random() * (width < 768 ? 1 : 1.5); this.baseAlpha = Math.random() * 0.5 + 0.2; this.vx = 0; this.vy = 0; }
+            draw() {
+                if (isInteracting) {
+                    let dx = pointerX - this.x; let dy = pointerY - this.y; let dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist < 300) { let force = (300 - dist) * 0.005; this.vx += (dx / dist) * force; this.vy += (dy / dist) * force; }
+                }
+                this.vx += (this.originX - this.x) * 0.04; this.vy += (this.originY - this.y) * 0.04;
+                this.vx *= 0.9; this.vy *= 0.9; this.x += this.vx; this.y += this.vy;
+                ctx.fillStyle = `rgba(255, 255, 255, ${this.baseAlpha * window.starIntensity})`;
+                ctx.beginPath(); ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2); ctx.fill();
+            }
+        }
+
+        function initGalaxy() { stars = Array.from({length: width < 768 ? 150 : 350}, () => new Star()); }
+        function animate() { ctx.fillStyle = '#000'; ctx.fillRect(0, 0, width, height); stars.forEach(s => s.draw()); requestAnimationFrame(animate); }
+
+        const updatePointer = (e) => {
+            pointerX = e.touches ? e.touches[0].clientX : e.clientX;
+            pointerY = e.touches ? e.touches[0].clientY : e.clientY;
+            if (!e.touches) gsap.to(cursorDiv, { x: pointerX, y: pointerY, duration: 0.1 });
+        };
+        window.addEventListener('mousedown', () => isInteracting = true);
+        window.addEventListener('touchstart', () => isInteracting = true);
+        window.addEventListener('mouseup', () => isInteracting = false);
+        window.addEventListener('touchend', () => isInteracting = false);
+        window.addEventListener('mousemove', updatePointer);
+        window.addEventListener('touchmove', updatePointer);
+
+        gsap.registerPlugin(ScrollTrigger);
+        gsap.to("#progressLine", { height: "100%", ease: "none", scrollTrigger: { trigger: ".timeline-container", start: "top top", end: "bottom bottom", scrub: true } });
+        gsap.utils.toArray("section").forEach(section => { gsap.to(section, { opacity: 1, y: 0, duration: 1, scrollTrigger: { trigger: section, start: "top 70%", toggleActions: "play none none reverse" } }); });
+
+        musicBtn.addEventListener('click', () => {
+            if (isPlaying) { music.pause(); musicBtn.innerText = "Som: Off"; gsap.to(window, { starIntensity: 1, duration: 2 }); }
+            else { music.play(); musicBtn.innerText = "Som: On"; gsap.to(window, { starIntensity: 2.5, duration: 1, repeat: -1, yoyo: true, ease: "sine.inOut" }); }
+            isPlaying = !isPlaying;
+        });
+
+        window.addEventListener('resize', setCanvasSize);
+        setCanvasSize(); animate();
+
+        // --- NOVA ANIMAÇÃO DE SUPERNOVA VISUAL ---
+        document.getElementById('explodeBtn').addEventListener('click', () => {
+            // Mostra o container da estrela
+            supernovaCont.style.display = 'flex';
+            
+            let tl = gsap.timeline();
+            
+            // 1. A estrela real nasce e pulsa rapidamente antes de explodir
+            tl.to(starVisual, { 
+                scale: 1, 
+                duration: 0.8, 
+                ease: "back.out(1.7)" 
+            })
+            .to(starVisual, {
+                filter: "drop-shadow(0 0 40px #fff) drop-shadow(0 0 80px #a0d8ef)",
+                repeat: 3,
+                yoyo: true,
+                duration: 0.1
+            })
+            // 2. A EXPLOSÃO: Cresce agressivamente e rotaciona
+            .to(starVisual, { 
+                scale: 80, // Cobre a tela inteira
+                rotation: 180,
+                duration: 1.2, 
+                ease: "expo.in" 
+            })
+            // 3. Flash branco total (Bloom máximo)
+            .to(".flash-overlay", { opacity: 1, duration: 0.1 })
+            // 4. Troca de cena (Mensagem Final)
+            .set(finalMsg, { display: 'flex' })
+            .set(".timeline-container, #galaxyCanvas, .audio-control", { display: 'none' })
+            .to(".flash-overlay", { opacity: 0, duration: 2 })
+            // 5. Revela o texto final
+            .to(lastText, { opacity: 1, y: -20, duration: 2, ease: "power2.out" });
+        });
+    </script>
+</body>
+</html>
